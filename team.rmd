@@ -1,0 +1,86 @@
+# halo_ds 
+# yumaanderson
+
+## Loading the Data
+```{r}
+library(dplyr)
+library(tidyr)
+library(readxl)
+defense <- read_excel('cyclonesFootball2018.xlsx', sheet='Defensive')
+str(defense)
+```
+```{r}
+offense <- read_excel('cyclonesFootball2018.xlsx', sheet='Offensive')
+bio <- read_excel('cyclonesFootball2018.xlsx', sheet='Biography')
+```
+
+## Part One: Cleaning Data
+
+1. The player names and opponent names are factors.
+```{r}
+defense$Name <- as.factor(defense$Name)
+defense$Opponent_Opponent <- as.factor(defense$Opponent_Opponent)
+
+offense$Name <- as.factor(offense$Name)
+offense$Opponent_Opponent <- as.factor(offense$Opponent_Opponent)
+
+bio$Name <- as.factor(bio$Name)
+```
+
+2. All offensive and defensive statistics are numerical. The `Weight` column in Biography is also numeric. (Hint: look at `?mutate_at` if you want to save writing some code). 
+```{r}
+bio$Weight <- as.numeric(bio$Weight)
+
+offClean <- offense %>% mutate_if(is.character, as.numeric)
+
+defClean <- defense %>% mutate_if(is.character, as.numeric)
+```
+
+
+3. Separate the `Height` column into two columns. Make sure the newly created columns are numeric. Then create one column that represents `Height` (Hint: Use a unit that works well). Drop any irrelavant columns from this process. 
+```{r}
+bio <- separate(data = bio, col = Height, into = c("Feet", "Inches"), sep = "-")
+bio$Feet <- as.numeric(bio$Feet)
+bio$Inches <- as.numeric(bio$Inches)
+bio$HeightinInches <- (bio$Feet * 12 ) + bio$Inches
+bioClean <- subset(bio, select = -c(Feet, Inches))
+```
+
+
+4. By cleaning the three data frames in R, at the end of this step you should have the following three clean data frames: `defClean`, `offClean`, and `bioClean`. Print the structures of these data frames. **Make sure your data types make sense for each variable.**
+```{r}
+str(bioClean)
+
+str(offClean)
+
+str(defClean)
+```
+
+
+## Part Two: Tidying (A)
+
+1. Reformat the `defClean` data frame into a tidy format using `gather`. The type of statistic (Tackles_Solo, Tackles_ASST, etc) is added as a **new key column named `Statistic`.** 
+```{r}
+
+```
+
+
+2. Create a histogram for each defensive statistic (make sure to explore different binwidths). Use `facet_wrap` to draw all histograms in a single plot. What defensive skills are rare?
+```{r}
+
+```
+
+3. Did ISU have better defense against West Virginia or Kansas State? Answer this question by creating a scatterplot with x-axis being the number of solo tackles (by each player) against West Virginia, and y-axis being that against Kansas State. A large number of solo tackles indicates good defense. 
+
+      (**Hint**: From step 1 we have gathered our `defClean` into 4 columns. \
+       Now we only want to focus on solo tackles (hint...`filter`). 
+      Look at your data structure. What form do we need our data to have in order to easily answer this question? (hint...`spread`)). 
+      
+    
+    
+    
+    
+    
+      
+      
+      
