@@ -1,22 +1,26 @@
-# halo_ds 
-# yumaanderson
+---
+title: 'Lab 4: Tidying and Joining'
+author: "Hannah Lo(halo-ds) and Yuma Anderson(yumaanderson)"
 
-## Loading the Data
-```{r}
+date: "10/24/2019"
+output: html_document
+---
+
+```{r, include=FALSE}
 library(dplyr)
+library(plyr)
+library(ggplot2)
 library(tidyr)
 library(readxl)
 defense <- read_excel('cyclonesFootball2018.xlsx', sheet='Defensive')
 str(defense)
-```
-```{r}
 offense <- read_excel('cyclonesFootball2018.xlsx', sheet='Offensive')
 bio <- read_excel('cyclonesFootball2018.xlsx', sheet='Biography')
 ```
 
 ## Part One: Cleaning Data
 
-1. The player names and opponent names are factors.
+Changed the player names and opponent names to factors.
 ```{r}
 defense$Name <- as.factor(defense$Name)
 defense$Opponent_Opponent <- as.factor(defense$Opponent_Opponent)
@@ -27,7 +31,7 @@ offense$Opponent_Opponent <- as.factor(offense$Opponent_Opponent)
 bio$Name <- as.factor(bio$Name)
 ```
 
-2. All offensive and defensive statistics are numerical. The `Weight` column in Biography is also numeric. (Hint: look at `?mutate_at` if you want to save writing some code). 
+Changed the offensive and defensive statistics to numerical, along with the 'Weight' column of Biography. 
 ```{r}
 bio$Weight <- as.numeric(bio$Weight)
 
@@ -36,8 +40,7 @@ offClean <- offense %>% mutate_if(is.character, as.numeric)
 defClean <- defense %>% mutate_if(is.character, as.numeric)
 ```
 
-
-3. Separate the `Height` column into two columns. Make sure the newly created columns are numeric. Then create one column that represents `Height` (Hint: Use a unit that works well). Drop any irrelavant columns from this process. 
+Separated the `Height` column into two columns, and made sure the newly created columns are numeric. After, we created one column that represents `Height`. Lastly, we dropped the columns 'Feet' and 'Inches' from biography.
 ```{r}
 bio <- separate(data = bio, col = Height, into = c("Feet", "Inches"), sep = "-")
 bio$Feet <- as.numeric(bio$Feet)
@@ -46,8 +49,7 @@ bio$HeightinInches <- (bio$Feet * 12 ) + bio$Inches
 bioClean <- subset(bio, select = -c(Feet, Inches))
 ```
 
-
-4. By cleaning the three data frames in R, at the end of this step you should have the following three clean data frames: `defClean`, `offClean`, and `bioClean`. Print the structures of these data frames. **Make sure your data types make sense for each variable.**
+We have the following three clean data frames: `defClean`, `offClean`, and `bioClean`. These are their following structures of these data frames:
 ```{r}
 str(bioClean)
 
@@ -59,28 +61,57 @@ str(defClean)
 
 ## Part Two: Tidying (A)
 
-1. Reformat the `defClean` data frame into a tidy format using `gather`. The type of statistic (Tackles_Solo, Tackles_ASST, etc) is added as a **new key column named `Statistic`.** 
+We reformated the `defClean` data frame into a tidy format using `gather` on the type of statistic (Tackles_Solo, Tackles_ASST, etc) resulting in a new column 'Statistic.'
 ```{r}
+defClean = defClean %>% gather(key=Statistics, value=score,3:11)
+defClean$Statistics <- as.factor(defClean$Statistics)
+# making categories of defense statistics clear
+defClean$Statistics = revalue(defClean$Statistics, c("Turnover_FF" ="Turnover_Forced_Fumble", "Turnover_FR"="Turnover_Fumble_Recovered","Turnover_INT"="Turnover_Interception"))
+```
 
+The following is a histogram for each defensive statistic. Turnovers by forced fumble, fumble recover, and interception are rare defensive skills. 
+```{r}
+defClean %>% ggplot(aes(score))+geom_histogram(binwidth = 1) +facet_wrap(~Statistics)+labs(title= 'Defensive Statistic Histogram')
+```
+
+ISU had a better defense against Kansas State than West Virginia. This is shown by a scatterplot with the x-axis being the number of solo tackles against West Virginia and the y-axis being that against Kansas State. 
+```{r}
+defClean %>% subset(Statistics == "Tackles_Solo") %>% spread(key=Opponent_Opponent, value = score) %>% select(`West Virginia`, `Kansas State`) %>% ggplot(aes(x=`West Virginia`,y=`Kansas State`)) + geom_point() + labs(title='Solo Tackles against')
+```
+      
+    
+## Part two: Tidying (B)
+
+We separated the Hometown column into two columns by the city and state. 
+```{r}
+bioClean = separate(data = bioClean, col = Hometown, into = c("City", "State"), sep = ",")
+bioClean[1:2,]
+```
+
+The following table shows how many players there are from each state:
+```{r}
+table(bioClean$State)
 ```
 
 
-2. Create a histogram for each defensive statistic (make sure to explore different binwidths). Use `facet_wrap` to draw all histograms in a single plot. What defensive skills are rare?
+## Part three: Joining data frames
+By completing a left join on the offensive data and player biography data, the following table was made showing all offensive player's hometowns.
 ```{r}
-
+off_bio = left_join(offClean, bioClean, by = "Name")
+off_bio %>% group_by(Name) %>% select(City,State) %>% distinct()
 ```
 
-3. Did ISU have better defense against West Virginia or Kansas State? Answer this question by creating a scatterplot with x-axis being the number of solo tackles (by each player) against West Virginia, and y-axis being that against Kansas State. A large number of solo tackles indicates good defense. 
+There is no relationship between the weight of a player and receiving yards. This is shown by the following scatterplot of the receiving yards by a player's weight: 
+```{r message=FALSE, warning=FALSE}
+off_bio %>% ggplot(aes(Weight,Receiving_YDS)) + geom_point(position = 'jitter', alpha= .5) +labs(title="Receiving yards by weight",y="Receiving Yards")
+```
 
-      (**Hint**: From step 1 we have gathered our `defClean` into 4 columns. \
-       Now we only want to focus on solo tackles (hint...`filter`). 
-      Look at your data structure. What form do we need our data to have in order to easily answer this question? (hint...`spread`)). 
-      
-    
-    
-    
-    
-    
-      
-      
-      
+A question we can ask ourselves is what players are exclusively offensive? The following list shows players that solely play offense. 
+```{r}
+offClean %>% anti_join(defClean,by="Name") %>% select("Name") %>% distinct()
+```
+
+
+
+
+
